@@ -1,13 +1,11 @@
-
-
 {
-	"autodeskProduct":	"Fusion360",
-	"type":	"addin",
-	"id":	"replace_me",
-	"author":	"Patrick Rainsberry",
-	"description": "Bounding Box Addin for Additive Manufacturing",
-	"version":	"0.1.0",
-	"runOnStartup":	false,
-	"supportedOS":	"windows|mac",
-	"editEnabled":	true
+    "autodeskProduct": "Fusion360",
+    "type": "addin",
+    "id": "1aee3627-10c2-4e98-ae33-f5a0e87008db",
+    "author": "Patrick Rainsberry",
+    "description": "Bounding Box Addin for Additive Manufacturing",
+    "version": "0.1.0",
+    "runOnStartup": false,
+    "supportedOS": "windows|mac",
+    "editEnabled": true
 }
