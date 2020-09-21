@@ -1,0 +1,2 @@
+Install 3rd party libraries, such as requests, to this directory.
+They will automatically be referenced in your app.
