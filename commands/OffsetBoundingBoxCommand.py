@@ -73,12 +73,12 @@ class TheBox:
         self.z_neg_vector.scaleBy(-1)
 
         self.directions = {
-            "X Pos": Direction("X Pos", self.x_pos_vector, inputs),
-            "X Neg": Direction("X Neg", self.x_neg_vector, inputs),
-            "Y Pos": Direction("Y Pos", self.y_pos_vector, inputs),
-            "Y Neg": Direction("Y Neg", self.y_neg_vector, inputs),
-            "Z Pos": Direction("Z Pos", self.z_pos_vector, inputs),
-            "Z Neg": Direction("Z Neg", self.z_neg_vector, inputs)
+            "X Pos": Direction("X Positive", self.x_pos_vector, inputs),
+            "X Neg": Direction("X Negative", self.x_neg_vector, inputs),
+            "Y Pos": Direction("Y Positive", self.y_pos_vector, inputs),
+            "Y Neg": Direction("Y Negative", self.y_neg_vector, inputs),
+            "Z Pos": Direction("Z Positive", self.z_pos_vector, inputs),
+            "Z Neg": Direction("Z Negative", self.z_neg_vector, inputs)
         }
 
         self.graphics_group = ao.root_comp.customGraphicsGroups.add()
