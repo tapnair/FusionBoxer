@@ -168,6 +168,7 @@ class TheBox:
 
         new_comp.features.shellFeatures.add(shell_input)
         new_comp.name = "Bounding Box"
+        new_comp.opacity = .5
 
 
 class OffsetBoundingBoxCommand(apper.Fusion360CommandBase):
@@ -182,8 +183,12 @@ class OffsetBoundingBoxCommand(apper.Fusion360CommandBase):
         selections = input_values['body_select']
 
         if len(selections) > 0:
-            # TODO Add selections
-            self.the_box.initialize_box(selections[0].boundingBox)
+            new_box: adsk.core.BoundingBox3D = selections[0].boundingBox
+
+            for selection in selections[1:]:
+                new_box.combine(selection.boundingBox)
+
+            self.the_box.initialize_box(new_box)
 
             direction: Direction
             for key, direction in self.the_box.directions.items():
@@ -198,9 +203,7 @@ class OffsetBoundingBoxCommand(apper.Fusion360CommandBase):
                     self.the_box.update_box(point)
                     # self.the_box.update_manipulators()
 
-            selections = input_values['body_select']
-            if len(selections) > 0:
-                self.the_box.update_graphics()
+            self.the_box.update_graphics()
 
         # for cmd_input in inputs:
         #     if cmd_input.objectType == adsk.core.DistanceValueCommandInput.classType():
