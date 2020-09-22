@@ -154,10 +154,13 @@ class TheBox:
         new_occ: adsk.fusion.Occurrence = ao.root_comp.occurrences.addNewComponent(adsk.core.Matrix3D.create())
         new_comp = new_occ.component
 
-        base_feature = new_comp.features.baseFeatures.add()
-        base_feature.startEdit()
-        new_comp.bRepBodies.add(self.brep_box, base_feature)
-        base_feature.finishEdit()
+        if ao.design.designType == adsk.fusion.DesignTypes.ParametricDesignType:
+            base_feature = new_comp.features.baseFeatures.add()
+            base_feature.startEdit()
+            new_comp.bRepBodies.add(self.brep_box, base_feature)
+            base_feature.finishEdit()
+        else:
+            new_comp.bRepBodies.add(self.brep_box)
 
         obj_col = adsk.core.ObjectCollection.create()
         obj_col.add(new_comp.bRepBodies.item(0))
