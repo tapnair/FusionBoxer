@@ -1,7 +1,12 @@
+from importlib import reload
+
 import adsk.core
 import adsk.fusion
 import apper
 from apper import AppObjects
+import config
+
+reload(config)
 
 
 def middle(min_p_value, max_p_value):
@@ -22,10 +27,16 @@ class Direction:
         ao = AppObjects()
         self.name = name
         self.direction = direction
-        self.origin = adsk.core.Point3D.create(0,0,0)
+        self.origin = adsk.core.Point3D.create(0, 0, 0)
 
         units = ao.units_manager.defaultLengthUnits
-        default_value = adsk.core.ValueInput.createByString(f'0.0 {units}')
+        try:
+            default_shell = config.DEFAULT_OFFSET
+        except AttributeError:
+            default_shell = f"1 {units}"
+
+        default_value = adsk.core.ValueInput.createByString(default_shell)
+
         self.dist_input: adsk.core.DistanceValueCommandInput = inputs.addDistanceValueCommandInput(
             f"dist_{self.name}", self.name, default_value
         )
@@ -87,22 +98,22 @@ class TheBox:
         min_p = self.modified_b_box.minPoint
         max_p = self.modified_b_box.maxPoint
 
-        self.directions["X Pos"].update_manipulator(adsk.core.Point3D.create(
+        self.directions["X Positive"].update_manipulator(adsk.core.Point3D.create(
             max_p.x, middle(min_p.y, max_p.y), middle(min_p.z, max_p.z))
         )
-        self.directions["X Neg"].update_manipulator(adsk.core.Point3D.create(
+        self.directions["X Negative"].update_manipulator(adsk.core.Point3D.create(
             min_p.x, middle(min_p.y, max_p.y), middle(min_p.z, max_p.z))
         )
-        self.directions["Y Pos"].update_manipulator(adsk.core.Point3D.create(
+        self.directions["Y Positive"].update_manipulator(adsk.core.Point3D.create(
             middle(min_p.x, max_p.x), max_p.y, middle(min_p.z, max_p.z))
         )
-        self.directions["Y Neg"].update_manipulator(adsk.core.Point3D.create(
+        self.directions["Y Negative"].update_manipulator(adsk.core.Point3D.create(
             middle(min_p.x, max_p.x), min_p.y, middle(min_p.z, max_p.z))
         )
-        self.directions["Z Pos"].update_manipulator(adsk.core.Point3D.create(
+        self.directions["Z Positive"].update_manipulator(adsk.core.Point3D.create(
             middle(min_p.x, max_p.x), middle(min_p.y, max_p.y), max_p.z)
         )
-        self.directions["Z Neg"].update_manipulator(adsk.core.Point3D.create(
+        self.directions["Z Negative"].update_manipulator(adsk.core.Point3D.create(
             middle(min_p.x, max_p.x), middle(min_p.y, max_p.y), min_p.z)
         )
 
@@ -155,6 +166,7 @@ class TheBox:
         new_comp = new_occ.component
 
         if ao.design.designType == adsk.fusion.DesignTypes.ParametricDesignType:
+            start = apper.start_group()
             base_feature = new_comp.features.baseFeatures.add()
             base_feature.startEdit()
             new_comp.bRepBodies.add(self.brep_box, base_feature)
@@ -165,14 +177,15 @@ class TheBox:
         obj_col = adsk.core.ObjectCollection.create()
         obj_col.add(new_comp.bRepBodies.item(0))
         shell_input = new_comp.features.shellFeatures.createInput(obj_col)
-
         thickness_input = adsk.core.ValueInput.createByReal(thickness)
         shell_input.outsideThickness = thickness_input
-
         new_comp.features.shellFeatures.add(shell_input)
+
         new_comp.name = "Bounding Box"
         new_comp.opacity = .5
 
+        if ao.design.designType == adsk.fusion.DesignTypes.ParametricDesignType:
+            apper.end_group(start)
 
 class OffsetBoundingBoxCommand(apper.Fusion360CommandBase):
     def __init__(self, name: str, options: dict):
@@ -267,11 +280,16 @@ class OffsetBoundingBoxCommand(apper.Fusion360CommandBase):
         selection_input.setSelectionLimits(1, 0)
 
         units = ao.units_manager.defaultLengthUnits
-        default_value = adsk.core.ValueInput.createByString(f'1.0 {units}')
-        inputs.addValueInput('thick_input', "Outer Shell Thickness", units,default_value )
+        try:
+            default_shell = config.DEFAULT_SHELL
+        except AttributeError:
+            default_shell = f"1 {units}"
+
+        default_value = adsk.core.ValueInput.createByString(default_shell)
+        inputs.addValueInput('thick_input', "Outer Shell Thickness", units, default_value)
+
         b_box = adsk.core.BoundingBox3D.create(
             adsk.core.Point3D.create(-1, -1, -1),
             adsk.core.Point3D.create(1, 1, 1)
         )
-
         self.the_box = TheBox(b_box, inputs)
