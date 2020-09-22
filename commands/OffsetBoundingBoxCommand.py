@@ -162,16 +162,20 @@ class TheBox:
     def make_brep_real(self, thickness):
         ao = AppObjects()
         self.update_brep_box()
-        new_occ: adsk.fusion.Occurrence = ao.root_comp.occurrences.addNewComponent(adsk.core.Matrix3D.create())
-        new_comp = new_occ.component
 
         if ao.design.designType == adsk.fusion.DesignTypes.ParametricDesignType:
             start = apper.start_group()
+
+            new_occ: adsk.fusion.Occurrence = ao.root_comp.occurrences.addNewComponent(adsk.core.Matrix3D.create())
+            new_comp = new_occ.component
+
             base_feature = new_comp.features.baseFeatures.add()
             base_feature.startEdit()
             new_comp.bRepBodies.add(self.brep_box, base_feature)
             base_feature.finishEdit()
         else:
+            new_occ: adsk.fusion.Occurrence = ao.root_comp.occurrences.addNewComponent(adsk.core.Matrix3D.create())
+            new_comp = new_occ.component
             new_comp.bRepBodies.add(self.brep_box)
 
         obj_col = adsk.core.ObjectCollection.create()
