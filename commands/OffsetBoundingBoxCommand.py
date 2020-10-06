@@ -2,9 +2,8 @@ from importlib import reload
 
 import adsk.core
 import adsk.fusion
-import apper
-from apper import AppObjects
-import config
+from ..apper import apper
+from .. import config
 
 reload(config)
 
@@ -23,7 +22,7 @@ def mid_point(p1: adsk.core.Point3D, p2: adsk.core.Point3D):
 
 class Direction:
     def __init__(self, name: str, direction: adsk.core.Vector3D, inputs: adsk.core.CommandInputs):
-        ao = AppObjects()
+        ao = apper.AppObjects()
         self.name = name
         self.direction = direction
         self.origin = adsk.core.Point3D.create(0, 0, 0)
@@ -53,7 +52,7 @@ class Direction:
 class TheBox:
 
     def __init__(self, b_box: adsk.core.BoundingBox3D, inputs: adsk.core.CommandInputs):
-        ao = AppObjects()
+        ao = apper.AppObjects()
         root_comp = ao.root_comp
         self.b_box = b_box
         self.modified_b_box = self.b_box.copy()
@@ -140,7 +139,7 @@ class TheBox:
         self.brep_box = self.brep_mgr.createBox(o_box)
 
     def make_brep_real(self, thickness):
-        ao = AppObjects()
+        ao = apper.AppObjects()
         self.update_brep_box()
 
         if ao.design.designType == adsk.fusion.DesignTypes.ParametricDesignType:
@@ -221,7 +220,7 @@ class OffsetBoundingBoxCommand(apper.Fusion360CommandBase):
         self.the_box.clear_graphics()
 
     def on_create(self, command, inputs):
-        ao = AppObjects()
+        ao = apper.AppObjects()
 
         selection_input = inputs.addSelectionInput('body_select', "Select Bodies",
                                                    "Select the bodies to create a bounding Box")
