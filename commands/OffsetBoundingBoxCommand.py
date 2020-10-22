@@ -1,11 +1,7 @@
-from importlib import reload
-
 import adsk.core
 import adsk.fusion
 from ..apper import apper
 from .. import config
-
-reload(config)
 
 
 def middle(min_p_value, max_p_value):
