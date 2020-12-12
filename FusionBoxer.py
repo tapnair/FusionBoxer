@@ -6,14 +6,14 @@ try:
     from . import config
     from .apper import apper
 
-    from .commands.OffsetBoundingBoxCommand import OffsetBoundingBoxCommand
+    from .commands.OffsetBoundingBoxCommand import OffsetBoundingBoxCommand, BoxCustomFeature
 
     # Create our addin definition object
     my_addin = apper.FusionApp(config.app_name, config.company_name, False)
     my_addin.root_path = config.app_path
 
     my_addin.add_command(
-        'Offset Bounding Box',
+        'Create Bounding Box',
         OffsetBoundingBoxCommand,
         {
             'cmd_description': 'Create a bounding box feature with custom offsets',
@@ -23,6 +23,33 @@ try:
             'cmd_resources': 'command_icons',
             'command_visible': True,
             'command_promoted': True,
+            'create_feature': True,
+        }
+    )
+
+    my_addin.add_command(
+        'Edit Bounding Box',
+        OffsetBoundingBoxCommand,
+        {
+            'cmd_description': 'Edit a bounding box feature with custom offsets',
+            'cmd_id': 'offset_b_box_edit',
+            'workspace': 'FusionSolidEnvironment',
+            'toolbar_panel_id': 'Commands',
+            'cmd_resources': 'command_icons',
+            'command_visible': True,
+            'command_promoted': True,
+            'create_feature': False,
+        }
+    )
+
+    my_addin.add_custom_feature(
+        'Offset Bounding Box',
+        BoxCustomFeature,
+        {
+            'cmd_description': 'Create a bounding box feature with custom offsets',
+            'feature_id': 'offset_b_box_custom_feature',
+            'feature_edit_id': 'offset_b_box_edit',
+            'feature_icons': 'command_icons',
         }
     )
 
@@ -39,4 +66,3 @@ def run(context):
 
 def stop(context):
     my_addin.stop_app()
-    cleanup_app(__file__)
