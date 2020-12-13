@@ -22,11 +22,11 @@ def get_default_offset():
     ao = apper.AppObjects()
     units = ao.units_manager.defaultLengthUnits
     try:
-        default_shell = config.DEFAULT_OFFSET
+        default_offset = config.DEFAULT_OFFSET
     except AttributeError:
-        default_shell = f"1 {units}"
+        default_offset = f"1 {units}"
 
-    default_value = adsk.core.ValueInput.createByString(default_shell)
+    default_value = ao.units_manager.evaluateExpression(default_offset)
     return default_value
 
 
@@ -36,8 +36,9 @@ class Direction:
         self.direction = direction
         self.origin = adsk.core.Point3D.create(0, 0, 0)
 
+        default_value_input = adsk.core.ValueInput.createByReal(default_value)
         self.dist_input: adsk.core.DistanceValueCommandInput = inputs.addDistanceValueCommandInput(
-            f"dist_{self.name}", self.name, default_value
+            f"dist_{self.name}", self.name, default_value_input
         )
         self.dist_input.isEnabled = False
         self.dist_input.isVisible = False
@@ -143,7 +144,7 @@ class TheBox:
         self.brep_box = self.brep_mgr.createBox(o_box)
 
     # TODO Different on edit
-    def make_brep_real(self, thickness):
+    def create_brep(self, thickness):
         ao = apper.AppObjects()
         self.update_brep_box()
 
@@ -152,20 +153,24 @@ class TheBox:
         new_comp.name = "Bounding Box"
         new_comp.opacity = .5
 
+
         if ao.design.designType == adsk.fusion.DesignTypes.ParametricDesignType:
 
             base_feature = new_comp.features.baseFeatures.add()
             base_feature.startEdit()
 
-            new_comp.bRepBodies.add(self.brep_box, base_feature)
-            shell_input = create_shell_input(new_comp, thickness)
-            shell_input.targetBaseFeature = base_feature
-            new_comp.features.shellFeatures.add(shell_input)
+            new_body = new_comp.bRepBodies.add(self.brep_box, base_feature)
+            shell_input = create_shell_input(new_body, thickness)
+            # shell_input.targetBaseFeature = base_feature
+            # new_comp.features.shellFeatures.add(shell_input)
 
             base_feature.finishEdit()
 
+            shell_input = create_shell_input(new_body, thickness)
+            shell_feature = new_comp.features.shellFeatures.add(shell_input)
+
             custom_features = new_comp.features.customFeatures
-            inputs = custom_features.createInput(config.custom_feature_definition, base_feature, base_feature)
+            inputs = custom_features.createInput(config.custom_feature_definition, base_feature, shell_feature)
 
             for i, selection in enumerate(self.selections):
                 inputs.addDependency('body_' + str(i), selection)
@@ -186,15 +191,50 @@ class TheBox:
             feature = custom_features.add(inputs)
 
         else:
-            new_comp.bRepBodies.add(self.brep_box)
-            shell_input = create_shell_input(new_comp, thickness)
+            new_body = new_comp.bRepBodies.add(self.brep_box)
+            shell_input = create_shell_input(new_body, thickness)
             new_comp.features.shellFeatures.add(shell_input)
 
+    def edit_brep(self, thickness, custom_feature: adsk.fusion.CustomFeature):
+        ao = apper.AppObjects()
+        self.update_brep_box()
+        
+        base_feature = _getBaseFeature(custom_feature)
+        update_base_feature_body(base_feature, self.brep_box)
+        
+        direction: Direction
+        for key, direction in self.directions.items():
+            parameter = custom_feature.parameters.itemById(key)
+            parameter.expression = direction.dist_input.expression
+        parameter = custom_feature.parameters.itemById('shell_thickness')
+        parameter.value = thickness
 
-def create_shell_input(component: adsk.fusion.Component, thickness: float) -> adsk.fusion.ShellFeatureInput:
+        reset_feature_dependencies(custom_feature, self.selections)
+
+
+def update_base_feature_body(base: adsk.fusion.BaseFeature, tool: adsk.fusion.BRepBody):
+    base.startEdit()
+    source_body = base.bodies[0]
+    base.updateBody(source_body, tool)
+    base.finishEdit()
+
+
+def reset_feature_dependencies(feature: adsk.fusion.CustomFeature, bodies: list):
+    ao = apper.AppObjects()
+    dependency: adsk.fusion.CustomFeatureDependency
+    for dependency in feature.dependencies:
+        dependency.deleteMe()
+
+    body: adsk.fusion.BRepBody
+    for i, body in enumerate(bodies):
+        feature.dependencies.add('body_' + str(i), body)
+
+
+def create_shell_input(body: adsk.fusion.BRepBody, thickness: float) -> adsk.fusion.ShellFeatureInput:
     obj_col = adsk.core.ObjectCollection.create()
-    obj_col.add(component.bRepBodies.item(0))
-    shell_input = component.features.shellFeatures.createInput(obj_col)
+    obj_col.add(body)
+
+    shell_input = body.parentComponent.features.shellFeatures.createInput(obj_col)
     thickness_input = adsk.core.ValueInput.createByReal(thickness)
     shell_input.outsideThickness = thickness_input
     return shell_input
@@ -218,13 +258,17 @@ class OffsetBoundingBoxCommand(apper.Fusion360CommandBase):
         self.the_box: TheBox
         self.the_box = None
         self.create_feature = options.get('create_feature', True)
+        self.editing_feature = None
         super().__init__(name, options)
 
     def on_preview(self, command, inputs, args, input_values):
+        ao = apper.AppObjects()
+        ao.print_msg(f'Preview Event - editing_feature = {self.editing_feature}')
         selections = input_values['body_select']
         if len(selections) > 0:
             new_box = bounding_box_from_selections(selections)
             self.the_box.initialize_box(new_box)
+            self.the_box.update_manipulators()
 
             direction: Direction
             for key, direction in self.the_box.directions.items():
@@ -240,6 +284,9 @@ class OffsetBoundingBoxCommand(apper.Fusion360CommandBase):
             self.the_box.update_graphics()
 
     def on_input_changed(self, command, inputs, changed_input, input_values):
+        ao = apper.AppObjects()
+        ao.print_msg(f'Input Changed Event - editing_feature = {self.editing_feature}')
+
         if changed_input.id == 'body_select':
             selections = input_values['body_select']
 
@@ -252,14 +299,22 @@ class OffsetBoundingBoxCommand(apper.Fusion360CommandBase):
                 self.the_box.update_manipulators()
 
     def on_execute(self, command, inputs, args, input_values):
+        ao = apper.AppObjects()
+        ao.print_msg(f'Execute Event - editing_feature = {self.editing_feature}')
         self.the_box.clear_graphics()
-        self.the_box.make_brep_real(input_values['thick_input'])
+        if self.create_feature:
+            self.the_box.create_brep(input_values['thick_input'])
+        else:
+            self.the_box.edit_brep(input_values['thick_input'], self.editing_feature)
 
     def on_destroy(self, command, inputs, reason, input_values):
+        ao = apper.AppObjects()
+        ao.print_msg(f'Destroy Event - editing_feature = {self.editing_feature}')
         self.the_box.clear_graphics()
 
     def on_create(self, command, inputs):
         ao = apper.AppObjects()
+        ao.print_msg(f'Create Event - editing_feature = {self.editing_feature}')
         units = ao.units_manager.defaultLengthUnits
 
         selection_input = inputs.addSelectionInput('body_select', "Select Bodies",
@@ -267,26 +322,37 @@ class OffsetBoundingBoxCommand(apper.Fusion360CommandBase):
         selection_input.addSelectionFilter('Bodies')
         selection_input.setSelectionLimits(1, 0)
 
+        # TODO Handle preselected bodies
+        default_selections = []
+
         if self.create_feature:
-            editing_feature = None
+            self.editing_feature = None
             default_thickness = get_default_thickness(units)
-            default_selections = []
 
         else:
-            editing_feature = get_editing_feature()
-            feature_values = get_feature_values(editing_feature)
+            self.editing_feature = get_editing_feature()
+            feature_values = get_feature_values(self.editing_feature)
             default_thickness = feature_values.shell_thickness
-            default_selections = get_selections_from_feature(editing_feature)
-            for entity in default_selections:
-                selection_input.addSelection(entity)
 
-        inputs.addValueInput('thick_input', "Outer Shell Thickness", units, default_thickness)
+        default_thickness_vi = adsk.core.ValueInput.createByReal(default_thickness)
+        inputs.addValueInput('thick_input', "Outer Shell Thickness", units, default_thickness_vi)
 
         # Get initialized bounding box
         b_box = bounding_box_from_selections(default_selections)
 
         # Create main box class
-        self.the_box = TheBox(b_box, inputs, editing_feature)
+        self.the_box = TheBox(b_box, inputs, self.editing_feature)
+
+    def on_activate(self, command: adsk.core.Command, inputs: adsk.core.CommandInputs, args, input_values):
+        ao = apper.AppObjects()
+        ao.print_msg(f'Activate Event - editing_feature = {self.editing_feature}')
+
+        if not self.create_feature:
+            selection_input = inputs.itemById('body_select')
+
+            default_selections = get_selections_from_feature(self.editing_feature)
+            for entity in default_selections:
+                selection_input.addSelection(entity)
 
 
 def get_editing_feature() -> adsk.fusion.CustomFeature:
@@ -298,11 +364,12 @@ def get_editing_feature() -> adsk.fusion.CustomFeature:
 
 
 def get_default_thickness(units):
+    ao = apper.AppObjects()
     try:
         default_shell = config.DEFAULT_SHELL
     except AttributeError:
         default_shell = f"1 {units}"
-    default_value = adsk.core.ValueInput.createByString(default_shell)
+    default_value = ao.units_manager.evaluateExpression(default_shell)
     return default_value
 
 

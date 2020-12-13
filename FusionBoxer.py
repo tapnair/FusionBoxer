@@ -48,8 +48,9 @@ try:
         {
             'cmd_description': 'Create a bounding box feature with custom offsets',
             'feature_id': 'offset_b_box_custom_feature',
-            'feature_edit_id': 'offset_b_box_edit',
+            'edit_cmd_id': 'offset_b_box_edit',
             'feature_icons': 'command_icons',
+            'roll_timeline': True,
         }
     )
 
