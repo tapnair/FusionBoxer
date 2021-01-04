@@ -13,10 +13,10 @@ try:
     my_addin.root_path = config.app_path
 
     my_addin.add_command(
-        'Create Bounding Box',
+        'Additive Cage',
         OffsetBoundingBoxCommand,
         {
-            'cmd_description': 'Create a bounding box feature with custom offsets',
+            'cmd_description': 'Create a cage around selected bodies for use in additive manufacturing workflows',
             'cmd_id': 'offset_b_box',
             'workspace': 'FusionSolidEnvironment',
             'toolbar_panel_id': 'Commands',
@@ -28,7 +28,7 @@ try:
     )
 
     my_addin.add_command(
-        'Edit Bounding Box',
+        'Edit Cage',
         OffsetBoundingBoxCommand,
         {
             'cmd_description': 'Edit a bounding box feature with custom offsets',
@@ -36,17 +36,16 @@ try:
             'workspace': 'FusionSolidEnvironment',
             'toolbar_panel_id': 'Commands',
             'cmd_resources': 'command_icons',
-            'command_visible': True,
-            'command_promoted': True,
+            'command_visible': False,
+            'command_promoted': False,
             'create_feature': False,
         }
     )
 
     my_addin.add_custom_feature(
-        'Offset Bounding Box',
+        'Additive Cage',
         BoxCustomFeature,
         {
-            'cmd_description': 'Create a bounding box feature with custom offsets',
             'feature_id': 'offset_b_box_custom_feature',
             'edit_cmd_id': 'offset_b_box_edit',
             'feature_icons': 'command_icons',
