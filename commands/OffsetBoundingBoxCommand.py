@@ -635,10 +635,6 @@ class OffsetBoundingBoxCommand(apper.Fusion360CommandBase):
         # Create main box class
         self.the_box = TheBox(b_box, inputs, self.editing_feature)
 
-    def on_activate(self, command: adsk.core.Command, inputs: adsk.core.CommandInputs, args, input_values):
-        ao = apper.AppObjects()
-        ao.print_msg(f'Activate Event - editing_feature = {self.editing_feature}')
-
         if not self.create_feature:
 
             if not self.rolled_for_edit:
@@ -660,6 +656,10 @@ class OffsetBoundingBoxCommand(apper.Fusion360CommandBase):
         else:
             # TODO Handle preselected bodies?
             pass
+
+    def on_activate(self, command: adsk.core.Command, inputs: adsk.core.CommandInputs, args, input_values):
+        ao = apper.AppObjects()
+        ao.print_msg(f'Activate Event - editing_feature = {self.editing_feature}')
 
 
 class BoxCustomFeature(apper.Fusion360CustomFeatureBase):
