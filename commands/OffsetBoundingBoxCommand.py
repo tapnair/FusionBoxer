@@ -413,7 +413,7 @@ class TheBox:
 
         new_occ: adsk.fusion.Occurrence = ao.root_comp.occurrences.addNewComponent(adsk.core.Matrix3D.create())
         new_comp = new_occ.component
-        new_comp.name = "Box Part"
+        new_comp.name = "Cage Part"
         # new_comp.opacity = .5
 
         if ao.design.designType == adsk.fusion.DesignTypes.ParametricDesignType:
@@ -455,7 +455,7 @@ class TheBox:
             )
 
             inputs.addCustomParameter(
-                'shell_thickness', 'Bar Thickness',
+                'shell_thickness', 'Cage Thickness',
                 adsk.core.ValueInput.createByString(self.thickness_input.expression),
                 ao.design.fusionUnitsManager.defaultLengthUnits,
                 True
@@ -488,6 +488,12 @@ class TheBox:
 
         parameter = custom_feature.parameters.itemById('shell_thickness')
         parameter.expression = self.thickness_input.expression
+
+        parameter = custom_feature.parameters.itemById('gap')
+        parameter.expression = self.gap_input.expression
+
+        parameter = custom_feature.parameters.itemById('bar')
+        parameter.expression = self.bar_input.expression
 
         update_feature_dependencies(custom_feature, self.selections)
 
@@ -561,8 +567,8 @@ class OffsetBoundingBoxCommand(apper.Fusion360CommandBase):
         elif changed_input.id == 'gap':
             self.the_box.feature_values.gap = input_values['gap']
 
-        elif changed_input.id == 'shell_thickness':
-            self.the_box.feature_values.shell_thickness = input_values['shell_thickness']
+        elif changed_input.id == 'thick_input':
+            self.the_box.feature_values.shell_thickness = input_values['thick_input']
         else:
             self.make_full_preview = False
 
@@ -627,13 +633,17 @@ class OffsetBoundingBoxCommand(apper.Fusion360CommandBase):
             bar_expression = self.editing_feature.parameters.itemById('bar').expression
             bar_input = adsk.core.ValueInput.createByString(bar_expression)
 
-        inputs.addValueInput('thick_input', "Outer Shell Thickness", units, thickness_input)
+        inputs.addValueInput('thick_input', "Cage Thickness", units, thickness_input)
 
         inputs.addValueInput('gap', "Bar Spacing", units, gap_input)
         inputs.addValueInput('bar', "Bar Width", units, bar_input)
 
         # Create main box class
         self.the_box = TheBox(b_box, inputs, self.editing_feature)
+
+    def on_activate(self, command: adsk.core.Command, inputs: adsk.core.CommandInputs, args, input_values):
+        ao = apper.AppObjects()
+        ao.print_msg(f'Activate Event - editing_feature = {self.editing_feature}')
 
         if not self.create_feature:
 
@@ -656,10 +666,6 @@ class OffsetBoundingBoxCommand(apper.Fusion360CommandBase):
         else:
             # TODO Handle preselected bodies?
             pass
-
-    def on_activate(self, command: adsk.core.Command, inputs: adsk.core.CommandInputs, args, input_values):
-        ao = apper.AppObjects()
-        ao.print_msg(f'Activate Event - editing_feature = {self.editing_feature}')
 
 
 class BoxCustomFeature(apper.Fusion360CustomFeatureBase):
