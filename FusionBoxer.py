@@ -13,10 +13,10 @@ try:
     my_addin.root_path = config.app_path
 
     my_addin.add_command(
-        'Additive Cage',
+        'Cage',
         OffsetBoundingBoxCommand,
         {
-            'cmd_description': 'Create a cage around selected bodies for use in additive manufacturing workflows',
+            'cmd_description': 'Cage Generator for 3D Printing with MJF and SLS',
             'cmd_id': 'offset_b_box',
             'workspace': 'FusionSolidEnvironment',
             'toolbar_panel_id': 'Commands',
@@ -31,7 +31,7 @@ try:
         'Edit Cage',
         OffsetBoundingBoxCommand,
         {
-            'cmd_description': 'Edit a bounding box feature with custom offsets',
+            'cmd_description': 'Cage Generator for 3D Printing with MJF and SLS',
             'cmd_id': 'offset_b_box_edit',
             'workspace': 'FusionSolidEnvironment',
             'toolbar_panel_id': 'Commands',
@@ -43,7 +43,7 @@ try:
     )
 
     my_addin.add_custom_feature(
-        'Additive Cage',
+        'Cage',
         BoxCustomFeature,
         {
             'feature_id': 'offset_b_box_custom_feature',

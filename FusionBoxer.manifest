@@ -3,7 +3,7 @@
     "type": "addin",
     "id": "1aee3627-10c2-4e98-ae33-f5a0e87008db",
     "author": "Patrick Rainsberry",
-    "description": "Bounding Box Addin for Additive Manufacturing",
+    "description": "Cage Generator for 3D Printing with MJF and SLS",
     "version": "0.1.0",
     "runOnStartup": false,
     "supportedOS": "windows|mac",
