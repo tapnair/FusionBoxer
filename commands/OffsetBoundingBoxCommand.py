@@ -435,26 +435,27 @@ class TheBox:
             # shell_feature = new_comp.features.shellFeatures.add(shell_input)
 
             custom_features = new_comp.features.customFeatures
-            inputs = custom_features.createInput(config.custom_feature_definition, base_feature, base_feature)
+            cf_input = custom_features.createInput(config.custom_feature_definition)
+            cf_input.setStartAndEndFeatures(base_feature, base_feature)
 
             for i, selection in enumerate(self.selections):
-                inputs.addDependency('body_' + str(i), selection)
+                cf_input.addDependency('body_' + str(i), selection)
 
-            inputs.addCustomParameter(
+            cf_input.addCustomParameter(
                 'gap', 'Bar Spacing',
                 adsk.core.ValueInput.createByString(self.inputs.itemById('gap').expression),
                 ao.design.fusionUnitsManager.defaultLengthUnits,
                 True
             )
 
-            inputs.addCustomParameter(
+            cf_input.addCustomParameter(
                 'bar', 'Bar Width',
                 adsk.core.ValueInput.createByString(self.inputs.itemById('bar').expression),
                 ao.design.fusionUnitsManager.defaultLengthUnits,
                 True
             )
 
-            inputs.addCustomParameter(
+            cf_input.addCustomParameter(
                 'shell_thickness', 'Cage Thickness',
                 adsk.core.ValueInput.createByString(self.thickness_input.expression),
                 ao.design.fusionUnitsManager.defaultLengthUnits,
@@ -463,14 +464,14 @@ class TheBox:
 
             direction: Direction
             for key, direction in self.directions.items():
-                inputs.addCustomParameter(
+                cf_input.addCustomParameter(
                     key, direction.name,
                     adsk.core.ValueInput.createByString(direction.dist_input.expression),
                     ao.design.fusionUnitsManager.defaultLengthUnits,
                     True
                 )
 
-            custom_features.add(inputs)
+            custom_features.add(cf_input)
 
         else:
             shell_box = create_brep_shell_box(self.modified_b_box, self.thickness_input.value)
