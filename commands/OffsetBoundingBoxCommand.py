@@ -181,17 +181,28 @@ def create_gaps(b_box: adsk.core.BoundingBox3D, feature_values: FeatureValues) -
     o_box = oriented_b_box_from_b_box(b_box)
     create_o_box = adsk.core.OrientedBoundingBox3D.create
     create_point = adsk.core.Point3D.create
-    x_num = int(math.floor((o_box.length + bar) / (gap + bar)))
-    y_num = int(math.floor((o_box.width + bar) / (gap + bar)))
-    z_num = int(math.floor((o_box.height + bar) / (gap + bar)))
 
-    # x_min = b_box.minPoint.x + ((o_box.length - ((x_num - 1) * (gap + bar))) / 2)
-    # y_min = b_box.minPoint.y + ((o_box.width - ((y_num - 1) * (gap + bar))) / 2)
-    # z_min = b_box.minPoint.z + ((o_box.height - ((z_num - 1) * (gap + bar))) / 2)
+    if (o_box.length - bar - gap - thk * 2) > 0:
+        x_num = int(math.floor((o_box.length + bar) / (gap + bar)))
+        x_step = (o_box.length - (gap * x_num) - (bar * (x_num - 1))) / 2
+    else:
+        x_num = 0
+        x_step = 0
 
-    x_step = (o_box.length - (gap * x_num) - (bar * (x_num - 1))) / 2
-    y_step = (o_box.width - (gap * y_num) - (bar * (y_num - 1))) / 2
-    z_step = (o_box.height - (gap * z_num) - (bar * (z_num - 1))) / 2
+    if (o_box.width - bar - gap - thk * 2) > 0:
+        y_num = int(math.floor((o_box.width + bar) / (gap + bar)))
+        y_step = (o_box.width - (gap * y_num) - (bar * (y_num - 1))) / 2
+    else:
+        y_num = 0
+        y_step = 0
+
+    if (o_box.height - bar - gap - thk * 2) > 0:
+        z_num = int(math.floor((o_box.height + bar) / (gap + bar)))
+        z_step = (o_box.height - (gap * z_num) - (bar * (z_num - 1))) / 2
+    else:
+        z_num = 0
+        z_step = 0
+
     x_min = b_box.minPoint.x + x_step + gap / 2
     y_min = b_box.minPoint.y + y_step + gap / 2
     z_min = b_box.minPoint.z + z_step + gap / 2
@@ -475,6 +486,17 @@ class TheBox:
 
         else:
             shell_box = create_brep_shell_box(self.modified_b_box, self.thickness_input.value)
+            feature_values = FeatureValues(
+                self.thickness_input.value,
+                self.inputs.itemById('bar').value,
+                self.inputs.itemById('gap').value,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+            )
+            gaps = create_gaps(self.modified_b_box, feature_values)
+            brep_mgr = adsk.fusion.TemporaryBRepManager.get()
+            for gap in gaps:
+                brep_mgr.booleanOperation(shell_box, gap, adsk.fusion.BooleanTypes.DifferenceBooleanType)
+
             new_comp.bRepBodies.add(shell_box)
 
     def edit_brep(self, custom_feature: adsk.fusion.CustomFeature):
@@ -545,6 +567,11 @@ class OffsetBoundingBoxCommand(apper.Fusion360CommandBase):
         ao.print_msg(f'Input Changed Event - editing_feature = {self.editing_feature}')
         self.make_full_preview = True
 
+        thickness_value = input_values['thick_input']
+        bar_value = input_values['bar']
+        gap_value = input_values['gap']
+        gap_limit = thickness_value * 2
+
         if changed_input.id == 'body_select':
             selections = input_values['body_select']
 
@@ -557,19 +584,43 @@ class OffsetBoundingBoxCommand(apper.Fusion360CommandBase):
                 self.the_box.update_manipulators()
 
                 o_box = oriented_b_box_from_b_box(new_box)
-                min_side = min(o_box.length, o_box.width, o_box.height)
-                default_gap = (min_side - input_values['bar'] * 3) / 4
-                inputs.itemById('gap').value = default_gap
-                self.the_box.feature_values.gap = default_gap
+                # min_side = min(o_box.length, o_box.width, o_box.height)
+
+                min_gaps = []
+                for side in [o_box.length, o_box.width, o_box.height]:
+                    min_gap = side * .9
+                    if min_gap > gap_limit:
+                        min_gaps.append(min_gap)
+
+                if len(min_gaps) > 0:
+                    most_min_gap = min(min_gaps)
+                else:
+                    most_min_gap = thickness_value
+
+                four_gaps = (side - bar_value * 3) / 4
+                three_gaps = (side - bar_value * 2) / 3
+                two_gaps = (side - bar_value) / 2
+
+                if four_gaps > gap_limit:
+                    new_gap = four_gaps
+                elif three_gaps > gap_limit:
+                    new_gap = three_gaps
+                elif two_gaps > gap_limit:
+                    new_gap = two_gaps
+                else:
+                    new_gap = most_min_gap
+
+                inputs.itemById('gap').value = new_gap
+                self.the_box.feature_values.gap = new_gap
 
         elif changed_input.id == 'bar':
-            self.the_box.feature_values.bar = input_values['bar']
+            self.the_box.feature_values.bar = bar_value
 
         elif changed_input.id == 'gap':
-            self.the_box.feature_values.gap = input_values['gap']
+            self.the_box.feature_values.gap = gap_value
 
         elif changed_input.id == 'thick_input':
-            self.the_box.feature_values.shell_thickness = input_values['thick_input']
+            self.the_box.feature_values.shell_thickness = thickness_value
         else:
             self.make_full_preview = False
 
