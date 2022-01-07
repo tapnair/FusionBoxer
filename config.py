@@ -7,4 +7,4 @@ company_name = "Autodesk"
 DEFAULT_OFFSET = "3 mm"
 DEFAULT_SHELL = "2 mm"
 
-custom_feature_definition = None
+cf_def_boxer = None
